@@ -31,9 +31,10 @@ if not users:
     save_data("users.pkl", users)
 
 
-# Entry point for running the program
+## Main function to launch the GUIm
 def main():
-    print("System ready. GUI will launch here later.")
+    from gui import start_gui # Import the GUI launcher from gui.py
+    start_gui() # Start the GUI window
 
 
 if __name__ == "__main__":
