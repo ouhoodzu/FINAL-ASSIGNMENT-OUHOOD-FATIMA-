@@ -112,6 +112,36 @@ def launch_customer_panel(user):
     tk.Button(customer_window, text="View My Bookings", width=30, command=lambda: view_booking_history(user)).pack(pady=5)
     tk.Button(customer_window, text="Logout", width=30, command=customer_window.destroy).pack(pady=10)
 
+# View Available Tickets
+def view_tickets():
+    try:
+        with open("tickets.pkl", "rb") as file:
+            tickets = pickle.load(file)
+    except FileNotFoundError:
+        messagebox.showinfo("No Tickets", "No tickets found.")
+        return
+
+    ticket_window = tk.Toplevel()
+    ticket_window.title("Available Tickets")
+
+    if not tickets:
+        tk.Label(ticket_window, text="No tickets available.").pack()
+        return
+
+    canvas = tk.Canvas(ticket_window, width=400, height=300)
+    frame = tk.Frame(canvas)
+    scrollbar = tk.Scrollbar(ticket_window, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    scrollbar.pack(side="right", fill="y")
+    canvas.pack(side="left")
+    canvas.create_window((0, 0), window=frame, anchor="nw")
+    frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    for ticket in tickets:
+        info = f"Type: {ticket.getTicketType()} | Event: {ticket.getEventName()} | Seat: {ticket.getSeatNumber()} | Price: {ticket.getPrice()} AED | Available: {'Yes' if ticket.getIsAvailable() else 'No'}"
+        tk.Label(frame, text=info, anchor="w", justify="left").pack(padx=10, pady=5)
+
 # Admin Panel Placeholder (build later)
 def launch_admin_panel():
     messagebox.showinfo("Admin", "Admin panel coming soon!")
@@ -127,4 +157,3 @@ def start_gui():
     tk.Button(window, text="Register", width=20, command=register).pack(pady=5)
 
     window.mainloop()
-
