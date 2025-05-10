@@ -225,3 +225,163 @@ class GroupTicket(Ticket):
     def displayGroupTicket(self):
         return f"Group Ticket - Size: {self.__group_size} | Discount: {self.__discount_rate * 100}%"
 
+
+# Booking Class
+class Booking:
+    def __init__(self, booking_date, is_confirmed):
+        # Private attributes for booking details
+        self.__booking_date = booking_date
+        self.__is_confirmed = is_confirmed
+
+    # Getter and setter for booking date
+    def getBookingDate(self):
+        return self.__booking_date
+
+    def setBookingDate(self, booking_date):
+        self.__booking_date = booking_date
+
+    # Getter and setter for confirmed status
+    def isConfirmed(self):
+        return self.__is_confirmed
+
+    def setConfirmed(self, confirmed):
+        self.__is_confirmed = confirmed
+
+
+
+# BookingHistory Class
+
+class BookingHistory:
+    def __init__(self, booking_id, user_id, ticket_id, booking_date):
+        # Stores a record of one booking: who booked what and when
+        self.__booking_id = booking_id
+        self.__user_id = user_id
+        self.__ticket_id = ticket_id
+        self.__booking_date = booking_date
+
+    # Getter and setter for booking ID
+    def getBookingID(self):
+        return self.__booking_id
+
+    def setBookingID(self, booking_id):
+        self.__booking_id = booking_id
+
+    # Getter and setter for user ID
+    def getUserID(self):
+        return self.__user_id
+
+    def setUserID(self, user_id):
+        self.__user_id = user_id
+
+    # Getter and setter for ticket ID
+    def getTicketID(self):
+        return self.__ticket_id
+
+    def setTicketID(self, ticket_id):
+        self.__ticket_id = ticket_id
+
+    # Getter and setter for booking date
+    def getBookingDate(self):
+        return self.__booking_date
+
+    def setBookingDate(self, booking_date):
+        self.__booking_date = booking_date
+
+
+# Payment Class (Base)
+
+class Payment:
+    def __init__(self, payment_id, amount, method, payment_date):
+        # Common payment details shared by all payment types
+        self.__payment_id = payment_id
+        self.__amount = amount
+        self.__method = method
+        self.__payment_date = payment_date
+
+    # Getter and setter for payment ID
+    def getPaymentID(self):
+        return self.__payment_id
+
+    def setPaymentID(self, payment_id):
+        self.__payment_id = payment_id
+
+    # Getter and setter for amount
+    def getAmount(self):
+        return self.__amount
+
+    def setAmount(self, amount):
+        self.__amount = amount
+
+    # Getter and setter for payment method
+    def getMethod(self):
+        return self.__method
+
+    def setMethod(self, method):
+        self.__method = method
+
+    # Getter and setter for payment date
+    def getPaymentDate(self):
+        return self.__payment_date
+
+    def setPaymentDate(self, payment_date):
+        self.__payment_date = payment_date
+
+    def displayPayment(self):
+        return f"Payment ID: {self.__payment_id} | Method: {self.__method} | Amount: {self.__amount}"
+
+
+
+# CreditCardPayment Class (Inherits Payment)
+
+class CreditCardPayment(Payment):
+    def __init__(self, payment_id, amount, payment_date, card_number, card_holder_name, expiry_date):
+        # Call parent constructor with method set to "Credit Card"
+        super().__init__(payment_id, amount, "Credit Card", payment_date)
+        self.__card_number = card_number
+        self.__card_holder_name = card_holder_name
+        self.__expiry_date = expiry_date
+
+    # Getters and setters for credit card details
+    def getCardNumber(self):
+        return self.__card_number
+
+    def setCardNumber(self, card_number):
+        self.__card_number = card_number
+
+    def getCardHolderName(self):
+        return self.__card_holder_name
+
+    def setCardHolderName(self, name):
+        self.__card_holder_name = name
+
+    def getExpiryDate(self):
+        return self.__expiry_date
+
+    def setExpiryDate(self, expiry_date):
+        self.__expiry_date = expiry_date
+
+    def displayCreditCardPayment(self):
+        return f"Card: {self.__card_number} | Holder: {self.__card_holder_name} | Expiry: {self.__expiry_date}"
+
+
+# CashPayment Class (Inherits Payment)
+
+class CashPayment(Payment):
+    def __init__(self, payment_id, amount, payment_date, cash_amount, change):
+        # Call parent constructor with method set to "Cash"
+        super().__init__(payment_id, amount, "Cash", payment_date)
+        self.__cash_amount = cash_amount
+        self.__change = change
+
+    # Getters and setters for cash-specific info
+    def getCashAmount(self):
+        return self.__cash_amount
+
+    def setCashAmount(self, cash_amount):
+        self.__cash_amount = cash_amount
+
+    def getChange(self):
+        return self.__change
+
+    def setChange(self, change):
+        self.__change = change
