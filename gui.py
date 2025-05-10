@@ -28,14 +28,11 @@ def register():
         phone = entry_phone.get()
 
         users = load_users()
-
-        # Check if username already exists
         for user in users:
             if user.getUsername() == username:
                 messagebox.showerror("Error", "Username already exists")
                 return
 
-        # Create and save new customer
         new_customer = Customer(username, password, name, email, phone)
         users.append(new_customer)
         save_users(users)
@@ -100,7 +97,7 @@ def login():
 
     tk.Button(login_window, text="Login", command=process_login).pack()
 
-# Customer Panel After Login
+# Customer Panel
 def launch_customer_panel(user):
     customer_window = tk.Toplevel()
     customer_window.title(f"Welcome, {user.getName()}")
@@ -142,9 +139,121 @@ def view_tickets():
         info = f"Type: {ticket.getTicketType()} | Event: {ticket.getEventName()} | Seat: {ticket.getSeatNumber()} | Price: {ticket.getPrice()} AED | Available: {'Yes' if ticket.getIsAvailable() else 'No'}"
         tk.Label(frame, text=info, anchor="w", justify="left").pack(padx=10, pady=5)
 
-# Admin Panel Placeholder (build later)
+# Book a Ticket
+def book_ticket(user):
+    try:
+        with open("tickets.pkl", "rb") as file:
+            tickets = pickle.load(file)
+    except FileNotFoundError:
+        messagebox.showinfo("Error", "No tickets available.")
+        return
+
+    available_tickets = [t for t in tickets if t.getIsAvailable()]
+
+    if not available_tickets:
+        messagebox.showinfo("Sorry", "No tickets currently available.")
+        return
+
+    booking_window = tk.Toplevel()
+    booking_window.title("Book a Ticket")
+
+    tk.Label(booking_window, text="Select a Ticket to Book:").pack()
+
+    selected_index = tk.IntVar(value=0)
+
+    for index, ticket in enumerate(available_tickets):
+        label = f"{ticket.getTicketType()} | {ticket.getEventName()} | {ticket.getSeatNumber()} | {ticket.getPrice()} AED"
+        tk.Radiobutton(booking_window, text=label, variable=selected_index, value=index).pack(anchor="w")
+
+    def confirm_booking():
+        index = selected_index.get()
+        selected_ticket = available_tickets[index]
+        selected_ticket.setIsAvailable(False)
+
+        with open("tickets.pkl", "wb") as file:
+            pickle.dump(tickets, file)
+
+        try:
+            with open("orders.pkl", "rb") as f:
+                orders = pickle.load(f)
+        except FileNotFoundError:
+            orders = []
+
+        booking = Booking("2025-05-10", True)
+        booking_info = {
+            "user": user.getUsername(),
+            "ticket": selected_ticket.getTicketID(),
+            "event": selected_ticket.getEventName(),
+            "seat": selected_ticket.getSeatNumber(),
+            "price": selected_ticket.getPrice(),
+            "date": booking.getBookingDate()
+        }
+
+        orders.append(booking_info)
+
+        with open("orders.pkl", "wb") as f:
+            pickle.dump(orders, f)
+
+        messagebox.showinfo("Success", "Ticket booked successfully!")
+        booking_window.destroy()
+
+    tk.Button(booking_window, text="Confirm Booking", command=confirm_booking).pack(pady=10)
+
+# View Booking History
+def view_booking_history(user):
+    try:
+        with open("orders.pkl", "rb") as file:
+            orders = pickle.load(file)
+    except FileNotFoundError:
+        orders = []
+
+    user_orders = [order for order in orders if order["user"] == user.getUsername()]
+
+    history_window = tk.Toplevel()
+    history_window.title("My Bookings")
+
+    if not user_orders:
+        tk.Label(history_window, text="You have no bookings.").pack()
+        return
+
+    for order in user_orders:
+        info = f"Event: {order['event']} | Seat: {order['seat']} | Price: {order['price']} AED | Date: {order['date']}"
+        tk.Label(history_window, text=info, anchor="w").pack(padx=10, pady=5)
+
+# Admin Panel (Real version)
 def launch_admin_panel():
-    messagebox.showinfo("Admin", "Admin panel coming soon!")
+    try:
+        with open("orders.pkl", "rb") as file:
+            orders = pickle.load(file)
+    except FileNotFoundError:
+        orders = []
+
+    admin_window = tk.Toplevel()
+    admin_window.title("Admin Dashboard")
+
+    tk.Label(admin_window, text="Ticket Sales Report", font=("Arial", 14)).pack(pady=10)
+
+    total_sales = sum(order["price"] for order in orders)
+    tk.Label(admin_window, text=f"Total Orders: {len(orders)}").pack()
+    tk.Label(admin_window, text=f"Total Revenue: {total_sales} AED").pack()
+
+    def reset_discounts():
+        try:
+            with open("tickets.pkl", "rb") as file:
+                tickets = pickle.load(file)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No tickets found.")
+            return
+
+        for ticket in tickets:
+            ticket.setPrice(ticket.getPrice() * 0.9)  # Apply 10% discount
+
+        with open("tickets.pkl", "wb") as file:
+            pickle.dump(tickets, file)
+
+        messagebox.showinfo("Updated", "10% discount applied to all ticket prices.")
+
+    tk.Button(admin_window, text="Apply 10% Discount to All Tickets", command=reset_discounts).pack(pady=10)
 
 # Main GUI Window
 def start_gui():
@@ -157,3 +266,4 @@ def start_gui():
     tk.Button(window, text="Register", width=20, command=register).pack(pady=5)
 
     window.mainloop()
+
