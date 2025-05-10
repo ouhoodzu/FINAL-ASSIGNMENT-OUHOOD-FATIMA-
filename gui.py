@@ -18,9 +18,7 @@ def save_users(users):
     with open("users.pkl", "wb") as file:
         pickle.dump(users, file)
 
-
 # Register New Customer
-
 def register():
     def submit_registration():
         username = entry_username.get()
@@ -37,7 +35,7 @@ def register():
                 messagebox.showerror("Error", "Username already exists")
                 return
 
-        # Create new customer and save
+        # Create and save new customer
         new_customer = Customer(username, password, name, email, phone)
         users.append(new_customer)
         save_users(users)
@@ -45,7 +43,6 @@ def register():
         messagebox.showinfo("Success", "Account created successfully!")
         register_window.destroy()
 
-    # Create registration form
     register_window = tk.Toplevel()
     register_window.title("Register")
 
@@ -71,9 +68,7 @@ def register():
 
     tk.Button(register_window, text="Submit", command=submit_registration).pack()
 
-
 # Login Screen
-
 def login():
     def process_login():
         username = entry_username.get()
@@ -92,7 +87,6 @@ def login():
 
         messagebox.showerror("Login Failed", "Invalid username or password")
 
-    # Create login form
     login_window = tk.Toplevel()
     login_window.title("Login")
 
@@ -106,18 +100,23 @@ def login():
 
     tk.Button(login_window, text="Login", command=process_login).pack()
 
-
-# Placeholder Panels (To be built later)
-
+# Customer Panel After Login
 def launch_customer_panel(user):
-    messagebox.showinfo("Customer", "Customer panel coming soon!")
+    customer_window = tk.Toplevel()
+    customer_window.title(f"Welcome, {user.getName()}")
 
+    tk.Label(customer_window, text=f"Welcome {user.getName()}", font=("Arial", 14)).pack(pady=10)
+
+    tk.Button(customer_window, text="View Available Tickets", width=30, command=view_tickets).pack(pady=5)
+    tk.Button(customer_window, text="Book a Ticket", width=30, command=lambda: book_ticket(user)).pack(pady=5)
+    tk.Button(customer_window, text="View My Bookings", width=30, command=lambda: view_booking_history(user)).pack(pady=5)
+    tk.Button(customer_window, text="Logout", width=30, command=customer_window.destroy).pack(pady=10)
+
+# Admin Panel Placeholder (build later)
 def launch_admin_panel():
     messagebox.showinfo("Admin", "Admin panel coming soon!")
 
-
 # Main GUI Window
-
 def start_gui():
     window = tk.Tk()
     window.title("Grand Prix Experience")
@@ -128,3 +127,4 @@ def start_gui():
     tk.Button(window, text="Register", width=20, command=register).pack(pady=5)
 
     window.mainloop()
+
