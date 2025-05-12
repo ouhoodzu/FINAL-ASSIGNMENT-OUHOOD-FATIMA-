@@ -3,7 +3,7 @@ from tkinter import messagebox
 import pickle
 
 # ------------------- Data Models -------------------
-# User class to hold user details like login and contact info
+# User class stores basic user information
 class User:
     def __init__(self, username, password, name, email, phone, role):
         self.username = username
@@ -13,25 +13,28 @@ class User:
         self.phone = phone
         self.role = role
 
-# Ticket class to represent different ticket types and availability
+# Ticket class represents a single ticket
 class Ticket:
-    def __init__(self, ticket_type, event, price, available=True):
+    def __init__(self, ticket_type, event, price, details, available=True):
         self.ticket_type = ticket_type
         self.event = event
         self.price = price
+        self.details = details  # NEW: Extra information about the ticket
         self.available = available
 
-# Order class to record a booking made by a user
+# Order class stores a user's ticket booking info
 class Order:
-    def __init__(self, username, ticket_type, event, price, payment_method):
+    def __init__(self, username, ticket_type, event, price, payment_method, card_name=None, card_number=None):
         self.username = username
         self.ticket_type = ticket_type
         self.event = event
         self.price = price
         self.payment_method = payment_method
+        self.card_name = card_name
+        self.card_number = card_number
 
 # ------------------- File Operations -------------------
-# Load data from a file using pickle
+# Load data from file
 def load_data(filename):
     try:
         with open(filename, "rb") as f:
@@ -39,25 +42,24 @@ def load_data(filename):
     except:
         return []
 
-# Save data to a file using pickle
+# Save data to file
 def save_data(filename, data):
     with open(filename, "wb") as f:
         pickle.dump(data, f)
 
-# ------------------- Init Tickets -------------------
-# Initialize default ticket data if not already present
+# Initialize tickets if not already present
 def init_tickets():
     tickets = load_data("tickets.pkl")
     if not tickets:
         sample = [
-            Ticket("Single-Race Pass", "Abu Dhabi GP", 350),
-            Ticket("Weekend Package", "Dubai GP", 800),
-            Ticket("Group Discount", "Sharjah GP", 1200)
+            Ticket("Single-Race Pass", "Abu Dhabi GP", 350, "One-day access to race"),
+            Ticket("Weekend Package", "Dubai GP", 800, "3-day access + pit tour"),
+            Ticket("Group Discount", "Sharjah GP", 1200, "4 tickets + merch bundle")
         ]
         save_data("tickets.pkl", sample)
 
 # ------------------- GUI -------------------
-# Launch the main GUI window
+# Start the GUI window
 def start_gui():
     init_tickets()
     root = tk.Tk()
@@ -70,7 +72,7 @@ def start_gui():
     root.mainloop()
 
 # ------------------- Register -------------------
-# Show registration form and create new user
+# Registration form for new users
 def register(root):
     reg = tk.Toplevel(root)
     reg.title("Register")
@@ -107,7 +109,7 @@ def register(root):
     tk.Button(reg, text="Submit", command=submit).pack(pady=10)
 
 # ------------------- Login -------------------
-# Login window to authenticate users
+# Login screen for existing users
 def login(root):
     win = tk.Toplevel(root)
     win.title("Login")
@@ -131,8 +133,7 @@ def login(root):
 
     tk.Button(win, text="Login", command=submit).pack(pady=10)
 
-# ------------------- Dashboards -------------------
-# Customer interface after login
+# ------------------- Customer Dashboard -------------------
 def customer_dashboard(user):
     win = tk.Toplevel()
     win.title(f"Welcome {user.name}")
@@ -143,7 +144,7 @@ def customer_dashboard(user):
     tk.Button(win, text="🗑️ Delete Account", command=lambda: delete_account(win, user)).pack(pady=5)
     tk.Button(win, text="🚪 Logout", command=win.destroy).pack(pady=10)
 
-# Admin interface after login
+# Dashboard for admin user
 def admin_dashboard(user):
     win = tk.Toplevel()
     win.title("Admin Dashboard")
@@ -154,7 +155,7 @@ def admin_dashboard(user):
     tk.Button(win, text="🗑️ Delete My Account", command=lambda: delete_account(win, user)).pack(pady=5)
     tk.Button(win, text="🚪 Logout", command=win.destroy).pack(pady=10)
 
-# Display user details
+# Show admin or user info
 def view_info(parent, user):
     win = tk.Toplevel(parent)
     win.title("My Info")
@@ -164,7 +165,7 @@ def view_info(parent, user):
     tk.Label(win, text=f"Phone: {user.phone}").pack()
     tk.Label(win, text=f"Role: {user.role}").pack()
 
-# Display sales report
+# View total ticket sales
 def ticket_sales_report(parent):
     win = tk.Toplevel(parent)
     win.title("Ticket Sales Report")
@@ -182,8 +183,7 @@ def ticket_sales_report(parent):
         for k, v in summary.items():
             tk.Label(win, text=f"{k}: {v} tickets sold").pack()
 
-# ------------------- Ticket View & Booking -------------------
-# Show tickets and allow customer to book
+# ------------------- View & Book Tickets -------------------
 def view_tickets(parent, user):
     win = tk.Toplevel(parent)
     win.title("Available Tickets")
@@ -198,15 +198,24 @@ def view_tickets(parent, user):
     payment = tk.StringVar(value="Cash")
 
     for i, t in enumerate(available):
-        tk.Radiobutton(win, text=f"{t.ticket_type} - {t.event} - {t.price} AED", variable=selected, value=i).pack(anchor="w")
+        tk.Radiobutton(
+            win,
+            text=f"{t.ticket_type} - {t.event} - {t.price} AED - {t.details}",
+            variable=selected,
+            value=i
+        ).pack(anchor="w")
 
     tk.Label(win, text="Select payment method:").pack(pady=(10, 0))
     tk.Radiobutton(win, text="Credit Card", variable=payment, value="Credit").pack()
     tk.Radiobutton(win, text="Digital Wallet", variable=payment, value="Cash").pack()
 
-    tk.Button(win, text="Confirm Booking", command=lambda: confirm_booking(available, selected.get(), user, payment.get(), win)).pack(pady=10)
+    tk.Button(
+        win,
+        text="Confirm Booking",
+        command=lambda: confirm_booking(available, selected.get(), user, payment.get(), win)
+    ).pack(pady=10)
 
-# Finalize booking and update ticket/order files
+# Confirm ticket and record order
 def confirm_booking(available_tickets, index, user, method, window):
     t = available_tickets[index]
     t.available = False
@@ -227,8 +236,7 @@ def confirm_booking(available_tickets, index, user, method, window):
     messagebox.showinfo("Success", f"🎉 Booked: {t.ticket_type} for {t.price} AED")
     window.destroy()
 
-# ------------------- Order Management -------------------
-# Show and delete past orders
+# ------------------- Manage Orders -------------------
 def manage_orders(parent, user):
     win = tk.Toplevel(parent)
     orders = load_data("orders.pkl")
@@ -236,6 +244,8 @@ def manage_orders(parent, user):
 
     for i, o in enumerate(user_orders):
         tk.Label(win, text=f"{i+1}. {o.ticket_type} - {o.event} - {o.price} AED").pack()
+        if o.payment_method == "Credit":
+            tk.Label(win, text=f"Paid by {o.card_name} ({o.card_number})").pack()
 
     def delete():
         idx = int(entry.get()) - 1
@@ -250,8 +260,7 @@ def manage_orders(parent, user):
     entry.pack()
     tk.Button(win, text="Delete Order", command=delete).pack(pady=5)
 
-# ------------------- Update & Delete Account -------------------
-# Update email and phone number
+# ------------------- Account Management -------------------
 def update_info(parent, user):
     win = tk.Toplevel(parent)
     tk.Label(win, text="New Email").pack()
@@ -275,7 +284,7 @@ def update_info(parent, user):
 
     tk.Button(win, text="Save", command=update).pack()
 
-# Remove user account completely
+# Delete user account
 def delete_account(parent, user):
     users = load_data("users.pkl")
     users = [u for u in users if u.username != user.username]
@@ -284,7 +293,6 @@ def delete_account(parent, user):
     parent.destroy()
 
 # ------------------- Run -------------------
-# Launch program
 if __name__ == "__main__":
     start_gui()
 
