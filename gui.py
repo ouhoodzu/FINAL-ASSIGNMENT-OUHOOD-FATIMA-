@@ -1,269 +1,299 @@
-# gui.py
-
 import tkinter as tk
 from tkinter import messagebox
 import pickle
-from classes import *
 
-# Load user data from pickle file
-def load_users():
+# ------------------- Data Models -------------------
+# User class stores basic user information
+class User:
+    def __init__(self, username, password, name, email, phone, role):
+        self.username = username
+        self.password = password
+        self.name = name
+        self.email = email
+        self.phone = phone
+        self.role = role
+
+# Ticket class represents a single ticket
+class Ticket:
+    def __init__(self, ticket_type, event, price, details, available=True):
+        self.ticket_type = ticket_type
+        self.event = event
+        self.price = price
+        self.details = details  # NEW: Extra information about the ticket
+        self.available = available
+
+# Order class stores a user's ticket booking info
+class Order:
+    def __init__(self, username, ticket_type, event, price, payment_method, card_name=None, card_number=None):
+        self.username = username
+        self.ticket_type = ticket_type
+        self.event = event
+        self.price = price
+        self.payment_method = payment_method
+        self.card_name = card_name
+        self.card_number = card_number
+
+# ------------------- File Operations -------------------
+# Load data from file
+def load_data(filename):
     try:
-        with open("users.pkl", "rb") as file:
-            return pickle.load(file)
-    except FileNotFoundError:
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    except:
         return []
 
-# Save user data to pickle file
-def save_users(users):
-    with open("users.pkl", "wb") as file:
-        pickle.dump(users, file)
+# Save data to file
+def save_data(filename, data):
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
 
-# Register New Customer
-def register():
-    def submit_registration():
-        username = entry_username.get()
-        password = entry_password.get()
-        name = entry_name.get()
-        email = entry_email.get()
-        phone = entry_phone.get()
-
-        users = load_users()
-        for user in users:
-            if user.getUsername() == username:
-                messagebox.showerror("Error", "Username already exists")
-                return
-
-        new_customer = Customer(username, password, name, email, phone)
-        users.append(new_customer)
-        save_users(users)
-
-        messagebox.showinfo("Success", "Account created successfully!")
-        register_window.destroy()
-
-    register_window = tk.Toplevel()
-    register_window.title("Register")
-
-    tk.Label(register_window, text="Username").pack()
-    entry_username = tk.Entry(register_window)
-    entry_username.pack()
-
-    tk.Label(register_window, text="Password").pack()
-    entry_password = tk.Entry(register_window, show="*")
-    entry_password.pack()
-
-    tk.Label(register_window, text="Name").pack()
-    entry_name = tk.Entry(register_window)
-    entry_name.pack()
-
-    tk.Label(register_window, text="Email").pack()
-    entry_email = tk.Entry(register_window)
-    entry_email.pack()
-
-    tk.Label(register_window, text="Phone").pack()
-    entry_phone = tk.Entry(register_window)
-    entry_phone.pack()
-
-    tk.Button(register_window, text="Submit", command=submit_registration).pack()
-
-# Login Screen
-def login():
-    def process_login():
-        username = entry_username.get()
-        password = entry_password.get()
-        users = load_users()
-
-        for user in users:
-            if user.getUsername() == username and user.getPassword() == password:
-                messagebox.showinfo("Login Success", f"Welcome, {username}!")
-                login_window.destroy()
-                if isinstance(user, Admin):
-                    launch_admin_panel()
-                else:
-                    launch_customer_panel(user)
-                return
-
-        messagebox.showerror("Login Failed", "Invalid username or password")
-
-    login_window = tk.Toplevel()
-    login_window.title("Login")
-
-    tk.Label(login_window, text="Username").pack()
-    entry_username = tk.Entry(login_window)
-    entry_username.pack()
-
-    tk.Label(login_window, text="Password").pack()
-    entry_password = tk.Entry(login_window, show="*")
-    entry_password.pack()
-
-    tk.Button(login_window, text="Login", command=process_login).pack()
-
-# Customer Panel
-def launch_customer_panel(user):
-    customer_window = tk.Toplevel()
-    customer_window.title(f"Welcome, {user.getName()}")
-
-    tk.Label(customer_window, text=f"Welcome {user.getName()}", font=("Arial", 14)).pack(pady=10)
-
-    tk.Button(customer_window, text="View Available Tickets", width=30, command=view_tickets).pack(pady=5)
-    tk.Button(customer_window, text="Book a Ticket", width=30, command=lambda: book_ticket(user)).pack(pady=5)
-    tk.Button(customer_window, text="View My Bookings", width=30, command=lambda: view_booking_history(user)).pack(pady=5)
-    tk.Button(customer_window, text="Logout", width=30, command=customer_window.destroy).pack(pady=10)
-
-# View Available Tickets
-def view_tickets():
-    try:
-        with open("tickets.pkl", "rb") as file:
-            tickets = pickle.load(file)
-    except FileNotFoundError:
-        messagebox.showinfo("No Tickets", "No tickets found.")
-        return
-
-    ticket_window = tk.Toplevel()
-    ticket_window.title("Available Tickets")
-
+# Initialize tickets if not already present
+def init_tickets():
+    tickets = load_data("tickets.pkl")
     if not tickets:
-        tk.Label(ticket_window, text="No tickets available.").pack()
-        return
+        sample = [
+            Ticket("Single-Race Pass", "Abu Dhabi GP", 350, "One-day access to race"),
+            Ticket("Weekend Package", "Dubai GP", 800, "3-day access + pit tour"),
+            Ticket("Group Discount", "Sharjah GP", 1200, "4 tickets + merch bundle")
+        ]
+        save_data("tickets.pkl", sample)
 
-    canvas = tk.Canvas(ticket_window, width=400, height=300)
-    frame = tk.Frame(canvas)
-    scrollbar = tk.Scrollbar(ticket_window, orient="vertical", command=canvas.yview)
-    canvas.configure(yscrollcommand=scrollbar.set)
+# ------------------- GUI -------------------
+# Start the GUI window
+def start_gui():
+    init_tickets()
+    root = tk.Tk()
+    root.title("Grand Prix Ticket System")
 
-    scrollbar.pack(side="right", fill="y")
-    canvas.pack(side="left")
-    canvas.create_window((0, 0), window=frame, anchor="nw")
-    frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    tk.Label(root, text="🏎️ Welcome to the Ticket Booking System", font=("Arial", 16)).pack(pady=10)
+    tk.Button(root, text="Login", width=20, command=lambda: login(root)).pack(pady=5)
+    tk.Button(root, text="Register", width=20, command=lambda: register(root)).pack(pady=5)
 
-    for ticket in tickets:
-        info = f"Type: {ticket.getTicketType()} | Event: {ticket.getEventName()} | Seat: {ticket.getSeatNumber()} | Price: {ticket.getPrice()} AED | Available: {'Yes' if ticket.getIsAvailable() else 'No'}"
-        tk.Label(frame, text=info, anchor="w", justify="left").pack(padx=10, pady=5)
+    root.mainloop()
 
-# Book a Ticket
-def book_ticket(user):
-    try:
-        with open("tickets.pkl", "rb") as file:
-            tickets = pickle.load(file)
-    except FileNotFoundError:
-        messagebox.showinfo("Error", "No tickets available.")
-        return
+# ------------------- Register -------------------
+# Registration form for new users
+def register(root):
+    reg = tk.Toplevel(root)
+    reg.title("Register")
 
-    available_tickets = [t for t in tickets if t.getIsAvailable()]
+    entries = {}
+    for label in ["Username", "Password", "Name", "Email", "Phone"]:
+        tk.Label(reg, text=label).pack()
+        entry = tk.Entry(reg, show="*" if label == "Password" else None)
+        entry.pack()
+        entries[label] = entry
 
-    if not available_tickets:
-        messagebox.showinfo("Sorry", "No tickets currently available.")
-        return
+    tk.Label(reg, text="Role").pack()
+    role_var = tk.StringVar(value="Customer")
+    tk.Radiobutton(reg, text="Customer", variable=role_var, value="Customer").pack()
+    tk.Radiobutton(reg, text="Admin", variable=role_var, value="Admin").pack()
 
-    booking_window = tk.Toplevel()
-    booking_window.title("Book a Ticket")
-
-    tk.Label(booking_window, text="Select a Ticket to Book:").pack()
-
-    selected_index = tk.IntVar(value=0)
-
-    for index, ticket in enumerate(available_tickets):
-        label = f"{ticket.getTicketType()} | {ticket.getEventName()} | {ticket.getSeatNumber()} | {ticket.getPrice()} AED"
-        tk.Radiobutton(booking_window, text=label, variable=selected_index, value=index).pack(anchor="w")
-
-    def confirm_booking():
-        index = selected_index.get()
-        selected_ticket = available_tickets[index]
-        selected_ticket.setIsAvailable(False)
-
-        with open("tickets.pkl", "wb") as file:
-            pickle.dump(tickets, file)
-
-        try:
-            with open("orders.pkl", "rb") as f:
-                orders = pickle.load(f)
-        except FileNotFoundError:
-            orders = []
-
-        booking = Booking("2025-05-10", True)
-        booking_info = {
-            "user": user.getUsername(),
-            "ticket": selected_ticket.getTicketID(),
-            "event": selected_ticket.getEventName(),
-            "seat": selected_ticket.getSeatNumber(),
-            "price": selected_ticket.getPrice(),
-            "date": booking.getBookingDate()
-        }
-
-        orders.append(booking_info)
-
-        with open("orders.pkl", "wb") as f:
-            pickle.dump(orders, f)
-
-        messagebox.showinfo("Success", "Ticket booked successfully!")
-        booking_window.destroy()
-
-    tk.Button(booking_window, text="Confirm Booking", command=confirm_booking).pack(pady=10)
-
-# View Booking History
-def view_booking_history(user):
-    try:
-        with open("orders.pkl", "rb") as file:
-            orders = pickle.load(file)
-    except FileNotFoundError:
-        orders = []
-
-    user_orders = [order for order in orders if order["user"] == user.getUsername()]
-
-    history_window = tk.Toplevel()
-    history_window.title("My Bookings")
-
-    if not user_orders:
-        tk.Label(history_window, text="You have no bookings.").pack()
-        return
-
-    for order in user_orders:
-        info = f"Event: {order['event']} | Seat: {order['seat']} | Price: {order['price']} AED | Date: {order['date']}"
-        tk.Label(history_window, text=info, anchor="w").pack(padx=10, pady=5)
-
-# Admin Panel (Real version)
-def launch_admin_panel():
-    try:
-        with open("orders.pkl", "rb") as file:
-            orders = pickle.load(file)
-    except FileNotFoundError:
-        orders = []
-
-    admin_window = tk.Toplevel()
-    admin_window.title("Admin Dashboard")
-
-    tk.Label(admin_window, text="Ticket Sales Report", font=("Arial", 14)).pack(pady=10)
-
-    total_sales = sum(order["price"] for order in orders)
-    tk.Label(admin_window, text=f"Total Orders: {len(orders)}").pack()
-    tk.Label(admin_window, text=f"Total Revenue: {total_sales} AED").pack()
-
-    def reset_discounts():
-        try:
-            with open("tickets.pkl", "rb") as file:
-                tickets = pickle.load(file)
-        except FileNotFoundError:
-            messagebox.showerror("Error", "No tickets found.")
+    def submit():
+        vals = [e.get() for e in entries.values()]
+        if not all(vals):
+            messagebox.showerror("Error", "All fields required")
             return
 
-        for ticket in tickets:
-            ticket.setPrice(ticket.getPrice() * 0.9)  # Apply 10% discount
+        users = load_data("users.pkl")
+        if any(u.username == vals[0] for u in users):
+            messagebox.showerror("Error", "Username taken")
+            return
 
-        with open("tickets.pkl", "wb") as file:
-            pickle.dump(tickets, file)
+        user = User(*vals, role_var.get())
+        users.append(user)
+        save_data("users.pkl", users)
+        messagebox.showinfo("Done", "Account created")
+        reg.destroy()
 
-        messagebox.showinfo("Updated", "10% discount applied to all ticket prices.")
+    tk.Button(reg, text="Submit", command=submit).pack(pady=10)
 
-    tk.Button(admin_window, text="Apply 10% Discount to All Tickets", command=reset_discounts).pack(pady=10)
+# ------------------- Login -------------------
+# Login screen for existing users
+def login(root):
+    win = tk.Toplevel(root)
+    win.title("Login")
 
-# Main GUI Window
-def start_gui():
-    window = tk.Tk()
-    window.title("Grand Prix Experience")
+    tk.Label(win, text="Username").pack()
+    user_entry = tk.Entry(win)
+    user_entry.pack()
+    tk.Label(win, text="Password").pack()
+    pass_entry = tk.Entry(win, show="*")
+    pass_entry.pack()
 
-    tk.Label(window, text="Welcome to the Ticket System", font=("Arial", 16)).pack(pady=10)
+    def submit():
+        username = user_entry.get()
+        password = pass_entry.get()
+        users = load_data("users.pkl")
+        for u in users:
+            if u.username == username and u.password == password:
+                win.destroy()
+                return admin_dashboard(u) if u.role == "Admin" else customer_dashboard(u)
+        messagebox.showerror("Failed", "Invalid credentials")
 
-    tk.Button(window, text="Login", width=20, command=login).pack(pady=5)
-    tk.Button(window, text="Register", width=20, command=register).pack(pady=5)
+    tk.Button(win, text="Login", command=submit).pack(pady=10)
 
-    window.mainloop()
+# ------------------- Customer Dashboard -------------------
+def customer_dashboard(user):
+    win = tk.Toplevel()
+    win.title(f"Welcome {user.name}")
 
+    tk.Button(win, text="🎟️ View Tickets", command=lambda: view_tickets(win, user)).pack(pady=5)
+    tk.Button(win, text="📦 My Orders", command=lambda: manage_orders(win, user)).pack(pady=5)
+    tk.Button(win, text="✏️ Update Info", command=lambda: update_info(win, user)).pack(pady=5)
+    tk.Button(win, text="🗑️ Delete Account", command=lambda: delete_account(win, user)).pack(pady=5)
+    tk.Button(win, text="🚪 Logout", command=win.destroy).pack(pady=10)
+
+# Dashboard for admin user
+def admin_dashboard(user):
+    win = tk.Toplevel()
+    win.title("Admin Dashboard")
+
+    tk.Label(win, text="🛠️ Admin Dashboard", font=("Arial", 16, "bold")).pack(pady=10)
+    tk.Button(win, text="📊 Ticket Sales Report", command=lambda: ticket_sales_report(win)).pack(pady=5)
+    tk.Button(win, text="👤 View My Info", command=lambda: view_info(win, user)).pack(pady=5)
+    tk.Button(win, text="🗑️ Delete My Account", command=lambda: delete_account(win, user)).pack(pady=5)
+    tk.Button(win, text="🚪 Logout", command=win.destroy).pack(pady=10)
+
+# Show admin or user info
+def view_info(parent, user):
+    win = tk.Toplevel(parent)
+    win.title("My Info")
+    tk.Label(win, text=f"Username: {user.username}").pack()
+    tk.Label(win, text=f"Name: {user.name}").pack()
+    tk.Label(win, text=f"Email: {user.email}").pack()
+    tk.Label(win, text=f"Phone: {user.phone}").pack()
+    tk.Label(win, text=f"Role: {user.role}").pack()
+
+# View total ticket sales
+def ticket_sales_report(parent):
+    win = tk.Toplevel(parent)
+    win.title("Ticket Sales Report")
+
+    orders = load_data("orders.pkl")
+    summary = {}
+    for o in orders:
+        key = f"{o.ticket_type} - {o.event}"
+        summary[key] = summary.get(key, 0) + 1
+
+    tk.Label(win, text="📊 Ticket Sales Summary", font=("Arial", 14, "bold")).pack(pady=5)
+    if not summary:
+        tk.Label(win, text="No tickets sold yet.").pack(pady=5)
+    else:
+        for k, v in summary.items():
+            tk.Label(win, text=f"{k}: {v} tickets sold").pack()
+
+# ------------------- View & Book Tickets -------------------
+def view_tickets(parent, user):
+    win = tk.Toplevel(parent)
+    win.title("Available Tickets")
+    tickets = load_data("tickets.pkl")
+    available = [t for t in tickets if t.available]
+
+    if not available:
+        tk.Label(win, text="⚠️ No available tickets at the moment.", font=("Arial", 12, "bold")).pack(padx=20, pady=20)
+        return
+
+    selected = tk.IntVar()
+    payment = tk.StringVar(value="Cash")
+
+    for i, t in enumerate(available):
+        tk.Radiobutton(
+            win,
+            text=f"{t.ticket_type} - {t.event} - {t.price} AED - {t.details}",
+            variable=selected,
+            value=i
+        ).pack(anchor="w")
+
+    tk.Label(win, text="Select payment method:").pack(pady=(10, 0))
+    tk.Radiobutton(win, text="Credit Card", variable=payment, value="Credit").pack()
+    tk.Radiobutton(win, text="Digital Wallet", variable=payment, value="Cash").pack()
+
+    tk.Button(
+        win,
+        text="Confirm Booking",
+        command=lambda: confirm_booking(available, selected.get(), user, payment.get(), win)
+    ).pack(pady=10)
+
+# Confirm ticket and record order
+def confirm_booking(available_tickets, index, user, method, window):
+    t = available_tickets[index]
+    t.available = False
+    all_tickets = load_data("tickets.pkl")
+
+    for i in range(len(all_tickets)):
+        if all_tickets[i].ticket_type == t.ticket_type and all_tickets[i].event == t.event:
+            all_tickets[i].available = False
+            break
+
+    save_data("tickets.pkl", all_tickets)
+
+    orders = load_data("orders.pkl")
+    order = Order(user.username, t.ticket_type, t.event, t.price, method)
+    orders.append(order)
+    save_data("orders.pkl", orders)
+
+    messagebox.showinfo("Success", f"🎉 Booked: {t.ticket_type} for {t.price} AED")
+    window.destroy()
+
+# ------------------- Manage Orders -------------------
+def manage_orders(parent, user):
+    win = tk.Toplevel(parent)
+    orders = load_data("orders.pkl")
+    user_orders = [o for o in orders if o.username == user.username]
+
+    for i, o in enumerate(user_orders):
+        tk.Label(win, text=f"{i+1}. {o.ticket_type} - {o.event} - {o.price} AED").pack()
+        if o.payment_method == "Credit":
+            tk.Label(win, text=f"Paid by {o.card_name} ({o.card_number})").pack()
+
+    def delete():
+        idx = int(entry.get()) - 1
+        if 0 <= idx < len(user_orders):
+            orders.remove(user_orders[idx])
+            save_data("orders.pkl", orders)
+            messagebox.showinfo("Deleted", "Order removed")
+            win.destroy()
+
+    tk.Label(win, text="Enter order number to delete").pack()
+    entry = tk.Entry(win)
+    entry.pack()
+    tk.Button(win, text="Delete Order", command=delete).pack(pady=5)
+
+# ------------------- Account Management -------------------
+def update_info(parent, user):
+    win = tk.Toplevel(parent)
+    tk.Label(win, text="New Email").pack()
+    email = tk.Entry(win)
+    email.insert(0, user.email)
+    email.pack()
+    tk.Label(win, text="New Phone").pack()
+    phone = tk.Entry(win)
+    phone.insert(0, user.phone)
+    phone.pack()
+
+    def update():
+        users = load_data("users.pkl")
+        for u in users:
+            if u.username == user.username:
+                u.email = email.get()
+                u.phone = phone.get()
+        save_data("users.pkl", users)
+        messagebox.showinfo("Updated", "Info changed.")
+        win.destroy()
+
+    tk.Button(win, text="Save", command=update).pack()
+
+# Delete user account
+def delete_account(parent, user):
+    users = load_data("users.pkl")
+    users = [u for u in users if u.username != user.username]
+    save_data("users.pkl", users)
+    messagebox.showinfo("Deleted", "Account removed")
+    parent.destroy()
+
+# ------------------- Run -------------------
+if __name__ == "__main__":
+    start_gui()
+
+  
